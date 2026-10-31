@@ -1,23 +1,7 @@
-export type FoodCategory =
-  | 'Produce'
-  | 'Bakery'
-  | 'Prepared Meals'
-  | 'Dairy'
-  | 'Pantry'
+import type { FoodCategory, Pickup } from './types'
 
-export type PickupStatus = 'new' | 'available' | 'claimed'
-
-export type Pickup = {
+export type SeedPickup = Omit<Pickup, 'id' | 'createdAt' | 'windowStart' | 'windowEnd'> & {
   id: string
-  donor: string
-  category: FoodCategory
-  quantity: number
-  unit: 'kg' | 'meals' | 'boxes'
-  windowLabel: string
-  address: string
-  lat: number
-  lng: number
-  status: PickupStatus
   postedMinutesAgo: number
 }
 
@@ -31,7 +15,7 @@ export const CATEGORIES: { value: FoodCategory; hint: string }[] = [
 
 export const MAP_CENTER: [number, number] = [37.7749, -122.4194]
 
-export const INITIAL_PICKUPS: Pickup[] = [
+export const INITIAL_PICKUPS: SeedPickup[] = [
   {
     id: 'p-101',
     donor: 'Green Fork Bistro',
@@ -112,7 +96,7 @@ export const INITIAL_PICKUPS: Pickup[] = [
   },
 ]
 
-export const INCOMING_PICKUPS: Omit<Pickup, 'id' | 'status' | 'postedMinutesAgo'>[] = [
+export const INCOMING_PICKUPS: Omit<SeedPickup, 'id' | 'status' | 'postedMinutesAgo'>[] = [
   {
     donor: 'Castro Corner Café',
     category: 'Bakery',
@@ -168,11 +152,3 @@ export const BASE_IMPACT = {
   mealsProvided: 10700,
   activeVolunteers: 142,
 }
-
-export const KG_PER_UNIT: Record<Pickup['unit'], number> = {
-  kg: 1,
-  meals: 0.45,
-  boxes: 8,
-}
-
-export const CO2E_PER_KG = 2.5

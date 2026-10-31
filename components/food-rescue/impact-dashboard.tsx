@@ -1,15 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
 import { Leaf, Scale, Users, UtensilsCrossed, type LucideIcon } from 'lucide-react'
-import {
-  BASE_IMPACT,
-  CATEGORY_BREAKDOWN,
-  CO2E_PER_KG,
-  KG_PER_UNIT,
-  WEEKLY_RESCUED,
-  type Pickup,
-} from '@/lib/mock-data'
+import { useImpact } from '@/hooks/use-food-rescue'
+import type { ImpactSummary } from '@/lib/types'
 import { UploadPreview } from './upload-preview'
 
 const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
@@ -23,18 +16,24 @@ type Stat = {
   featured?: boolean
 }
 
-export function ImpactDashboard({ pickups }: { pickups: Pickup[] }) {
-  const claimedKg = useMemo(
-    () =>
-      pickups
-        .filter((p) => p.status === 'claimed')
-        .reduce((sum, p) => sum + p.quantity * KG_PER_UNIT[p.unit], 0),
-    [pickups],
-  )
+const EMPTY_IMPACT: ImpactSummary = {
+  totalRescuedKg: 0,
+  co2eDivertedTonnes: 0,
+  mealsProvided: 0,
+  activeVolunteers: 0,
+  weekly: [],
+  categoryBreakdown: [],
+}
 
-  const totalKg = BASE_IMPACT.totalRescuedKg + claimedKg
-  const co2eTonnes = (totalKg * CO2E_PER_KG) / 1000
-  const maxWeekly = Math.max(...WEEKLY_RESCUED.map((d) => d.kg))
+export function ImpactDashboard() {
+  const { impact = EMPTY_IMPACT } = useImpact()
+  const WEEKLY_RESCUED = impact.weekly
+  const CATEGORY_BREAKDOWN = impact.categoryBreakdown
+  const BASE_IMPACT = impact
+
+  const totalKg = impact.totalRescuedKg
+  const co2eTonnes = impact.co2eDivertedTonnes
+  const maxWeekly = Math.max(1, ...WEEKLY_RESCUED.map((d) => d.kg))
   const weeklyTotal = WEEKLY_RESCUED.reduce((s, d) => s + d.kg, 0)
 
   const stats: Stat[] = [

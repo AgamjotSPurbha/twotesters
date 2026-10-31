@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Bell, Clock, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import type { Pickup, PickupStatus } from '@/lib/mock-data'
+import type { Pickup, PickupStatus } from '@/lib/types'
 
 const MapView = dynamic(() => import('./map-view').then((m) => m.MapView), {
   ssr: false,

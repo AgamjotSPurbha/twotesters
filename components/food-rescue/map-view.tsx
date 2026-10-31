@@ -4,7 +4,8 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet'
-import { MAP_CENTER, type Pickup, type PickupStatus } from '@/lib/mock-data'
+import { MAP_CENTER } from '@/lib/mock-data'
+import type { Pickup, PickupStatus } from '@/lib/types'
 
 const PIN_COLORS: Record<PickupStatus, string> = {
   new: '#059669',
