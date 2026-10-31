@@ -12,12 +12,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { CATEGORIES } from '@/lib/mock-data'
 import {
-  CATEGORIES,
-  MAP_CENTER,
+  PICKUP_UNITS,
+  type CreatePickupInput,
   type FoodCategory,
   type Pickup,
-} from '@/lib/mock-data'
+} from '@/lib/types'
 
 const CATEGORY_ICONS: Record<FoodCategory, LucideIcon> = {
   Produce: Apple,
@@ -27,7 +28,7 @@ const CATEGORY_ICONS: Record<FoodCategory, LucideIcon> = {
   Pantry: Package,
 }
 
-const UNITS: Pickup['unit'][] = ['kg', 'meals', 'boxes']
+const UNITS = PICKUP_UNITS
 
 const inputClass =
   'h-11 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-3 focus:ring-ring/20'
@@ -57,7 +58,7 @@ function todayISO() {
 }
 
 type DonorFormProps = {
-  onSubmit: (pickup: Pickup) => void
+  onSubmit: (input: CreatePickupInput) => Promise<Pickup>
   onViewMap: () => void
 }
 
@@ -72,8 +73,9 @@ export function DonorForm({ onSubmit, onViewMap }: DonorFormProps) {
   const [address, setAddress] = useState('742 Market St')
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState<Pickup | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const qty = Number(quantity)
     if (!Number.isFinite(qty) || qty <= 0) {
@@ -89,22 +91,24 @@ export function DonorForm({ onSubmit, onViewMap }: DonorFormProps) {
       return
     }
     setError(null)
-
-    const pickup: Pickup = {
-      id: `d-${Date.now()}`,
-      donor: donor.trim(),
-      category,
-      quantity: qty,
-      unit,
-      windowLabel: `${formatDay(date)}, ${formatTime(startTime)} – ${formatTime(endTime)}`,
-      address: address.trim(),
-      lat: MAP_CENTER[0] + (Math.random() - 0.5) * 0.03,
-      lng: MAP_CENTER[1] + (Math.random() - 0.5) * 0.04,
-      status: 'new',
-      postedMinutesAgo: 0,
+    setIsSubmitting(true)
+    try {
+      const pickup = await onSubmit({
+        donor: donor.trim(),
+        address: address.trim(),
+        category,
+        quantity: qty,
+        unit,
+        windowLabel: `${formatDay(date)}, ${formatTime(startTime)} – ${formatTime(endTime)}`,
+        windowStart: new Date(`${date}T${startTime}`).toISOString(),
+        windowEnd: new Date(`${date}T${endTime}`).toISOString(),
+      })
+      setSubmitted(pickup)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not post pickup. Try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-    onSubmit(pickup)
-    setSubmitted(pickup)
   }
 
   return (
@@ -281,7 +285,7 @@ export function DonorForm({ onSubmit, onViewMap }: DonorFormProps) {
             <p className="text-xs text-muted-foreground">
               Food must be safe, unexpired and stored at the right temperature.
             </p>
-            <Button type="submit" size="lg" className="h-11 px-6">
+            <Button type="submit" size="lg" className="h-11 px-6" disabled={isSubmitting}>
               Post pickup
             </Button>
           </div>

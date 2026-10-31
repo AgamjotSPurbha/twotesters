@@ -3,11 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BarChart3, HandHeart, Leaf, MapPinned } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import {
-  INCOMING_PICKUPS,
-  INITIAL_PICKUPS,
-  type Pickup,
-} from '@/lib/mock-data'
+import { usePickups } from '@/hooks/use-food-rescue'
 import { DonorForm } from './donor-form'
 import { VolunteerMap } from './volunteer-map'
 import { ImpactDashboard } from './impact-dashboard'
@@ -20,29 +16,10 @@ const TABS: { id: TabId; label: string; icon: typeof HandHeart }[] = [
   { id: 'impact', label: 'Impact', icon: BarChart3 },
 ]
 
-const SIMULATED_ARRIVAL_MS = 18000
-
 export function FoodRescueApp() {
   const [activeTab, setActiveTab] = useState<TabId>('donate')
-  const [pickups, setPickups] = useState<Pickup[]>(INITIAL_PICKUPS)
+  const { pickups, createPickup, claimPickup } = usePickups()
   const [seenIds, setSeenIds] = useState<Set<string>>(() => new Set())
-
-  useEffect(() => {
-    let index = 0
-    const timer = setInterval(() => {
-      if (index >= INCOMING_PICKUPS.length) {
-        clearInterval(timer)
-        return
-      }
-      const incoming = INCOMING_PICKUPS[index]
-      index += 1
-      setPickups((prev) => [
-        { ...incoming, id: `sim-${index}`, status: 'new', postedMinutesAgo: 0 },
-        ...prev,
-      ])
-    }, SIMULATED_ARRIVAL_MS)
-    return () => clearInterval(timer)
-  }, [])
 
   const unseenNewCount = useMemo(
     () => pickups.filter((p) => p.status === 'new' && !seenIds.has(p.id)).length,
@@ -60,14 +37,8 @@ export function FoodRescueApp() {
     })
   }, [activeTab, pickups])
 
-  function handleDonation(pickup: Pickup) {
-    setPickups((prev) => [pickup, ...prev])
-  }
-
   function handleClaim(id: string) {
-    setPickups((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: 'claimed' } : p)),
-    )
+    claimPickup(id).catch((error) => console.error('Failed to claim pickup:', error))
   }
 
   return (
@@ -142,7 +113,7 @@ export function FoodRescueApp() {
           aria-labelledby="tab-donate"
           hidden={activeTab !== 'donate'}
         >
-          <DonorForm onSubmit={handleDonation} onViewMap={() => setActiveTab('map')} />
+          <DonorForm onSubmit={createPickup} onViewMap={() => setActiveTab('map')} />
         </section>
         <section
           id="panel-map"
@@ -160,7 +131,7 @@ export function FoodRescueApp() {
           aria-labelledby="tab-impact"
           hidden={activeTab !== 'impact'}
         >
-          <ImpactDashboard pickups={pickups} />
+          <ImpactDashboard />
         </section>
       </main>
     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { CheckCircle2, ImageUp, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 
 type UploadItem = {
@@ -11,6 +12,7 @@ type UploadItem = {
   sizeLabel: string
   previewUrl: string
   progress: number
+  remoteUrl?: string
 }
 
 const MAX_BYTES = 8 * 1024 * 1024
@@ -32,17 +34,9 @@ export function UploadPreview() {
     return () => urls.forEach((url) => URL.revokeObjectURL(url))
   }, [])
 
-  useEffect(() => {
-    if (!items.some((i) => i.progress < 100)) return
-    const timer = setInterval(() => {
-      setItems((prev) =>
-        prev.map((i) =>
-          i.progress < 100 ? { ...i, progress: Math.min(100, i.progress + 12 + Math.random() * 18) } : i,
-        ),
-      )
-    }, 180)
-    return () => clearInterval(timer)
-  }, [items])
+  function updateItem(id: string, patch: Partial<UploadItem>) {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)))
+  }
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return
@@ -53,14 +47,29 @@ export function UploadPreview() {
       const previewUrl = URL.createObjectURL(file)
       urlsRef.current.push(previewUrl)
       return {
-        id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 7)}`,
-        name: file.name,
-        sizeLabel: formatSize(file.size),
-        previewUrl,
-        progress: 0,
+        file,
+        item: {
+          id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 7)}`,
+          name: file.name,
+          sizeLabel: formatSize(file.size),
+          previewUrl,
+          progress: 0,
+        },
       }
     })
-    setItems((prev) => [...next, ...prev])
+    setItems((prev) => [...next.map((n) => n.item), ...prev])
+
+    for (const { file, item } of next) {
+      api
+        .uploadFile(file, (percent) => updateItem(item.id, { progress: Math.min(99, percent) }))
+        .then((result) =>
+          updateItem(item.id, { progress: 100, remoteUrl: result.url ?? undefined }),
+        )
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : 'Upload failed.')
+          setItems((prev) => prev.filter((i) => i.id !== item.id))
+        })
+    }
   }
 
   function removeItem(id: string) {
