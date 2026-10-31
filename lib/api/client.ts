@@ -1,11 +1,11 @@
 import type { CreatePickupInput, ImpactSummary, Pickup, UploadResult } from '@/lib/types'
 
 /**
- * Defaults to this app's own `/api` routes. Point it at an external backend
- * (Express, FastAPI, Rails…) with NEXT_PUBLIC_API_BASE_URL — it just needs to
- * expose the same endpoints and JSON shapes.
+ * External backend (e.g. FastAPI on port 8000). It must expose the same
+ * endpoints and JSON shapes as the built-in mock routes in `app/api/`.
+ * Set this back to '/api' to use those mock routes instead.
  */
-export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api').replace(/\/$/, '')
+const API_BASE_URL = "http://localhost:8000";
 
 export class ApiError extends Error {
   constructor(
